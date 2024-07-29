@@ -1,0 +1,132 @@
+---
+title: "Project"
+author: "Gerard Jaena"
+date: "12/1/2021"
+output: pdf_document
+---
+
+Dataset
+
+The dataset I have chosen for this project is from UCI's Machine Learning Repository's Iris Data Set which can be found here https://archive.ics.uci.edu/ml/datasets/Iris. The dataset contains five classes with 150 observations. I ended up choosing this dataset because it just happened to be at the top, and after a days of working on it did I realize there was a view all data sets button.
+
+Data Description
+
+According to UCI's site the data has five variables, sepal length, sepal width, petal length, petal width, and species. The species variable is further separated into three different classes. For the purpose of this project I wanted to see if it were possible to predict the different kind of species using the four other variables within the dataset.
+
+Response and Predictor Variables
+
+Response Variable=Species
+Predictor Variables=Sepal length, Sepal width, Petal length, Petal width
+
+Load Data
+```{r,echo=FALSE}
+# Load data from hard drive
+#data=read.csv("C:/Users/Gerard Jaena/Documents/School Data Analytics/Stat 435/project/iris.data")
+data=iris
+```
+
+Looking over Data
+```{r,echo=FALSE}
+colnames(data)=c("Sepal length", "Sepal width", "Petal length", "Petal width", "Species")
+str(data)
+```
+
+Splitting Data into training and testing
+
+```{r, echo=FALSE}
+library(caret)
+set.seed(1)
+
+# Splitting Data
+#Split=sort(sample(nrow(data), nrow(data)*0.8))
+Split=createDataPartition(data$Species, p=0.80, list=FALSE)
+
+# Training Data
+iris.train=data[Split,]
+
+# Testing Data
+iris.test=data[-Split,]
+```
+
+I split the data here into a training and testing set. With the training set having 120 observations or 80% of the total and the testing set having 30 observations or 20% of the total.
+
+Summarizing Data
+
+```{r,echo=FALSE}
+percentage=prop.table(table(iris.train$Species))*100
+cbind(freq=table(iris.train$Species), Percentage=percentage)
+summary(iris.train)
+```
+
+Looking at the summary of the data, each class accounts for 1/3 of the total observations.
+While the summary statistics show that the petal lengths and widths are all below 8 centimeters.
+
+Data Visualizations
+
+Box Plot
+
+```{r,echo=FALSE}
+x1=iris.train[,1:4]
+y1=iris.train[,5]
+
+# Box Plot
+par(mfrow=c(1,4))
+for (i in 1:4) {
+  boxplot(x1[,i], main=names(iris.train)[i])
+}
+```
+
+Box plots of the distribution of each class, showing a few outliers in Sepal.Width.
+
+Bar Plot
+```{r,echo=FALSE}
+library(ggplot2)
+
+qplot(y1, xlab="species")
+```
+
+This bar plot is to show the distribution of observations. As we can see, all three classes have the same amount of observations.
+
+```{r,echo=FALSE}
+library(caret)
+
+featurePlot(x=iris[,1:4], 
+            y=iris$Species,
+            plot="density", 
+            scales=list(x=list(relation="free"), 
+                          y=list(relation="free")),
+            auto.key=list(columns=3))
+```
+Density plots for each class showing the distribution by species.
+
+I use 10 fold cross validation to estimate accuracy. Splitting the data into 9 training and 1 testing for both of my models.
+
+LDA Model
+```{r,echo=FALSE}
+control=trainControl(method='cv', number=10)
+metric='Accuracy'
+
+lda.fit=train(Species~., data=iris.train, method='lda', trControl=control, metric=metric)
+```
+
+KNN Model
+```{r,echo=FALSE}
+knn.fit=train(Species~., data=iris.train, method='knn', trControl=control, metric=metric)
+```
+
+Comparing LDA vs. KNN models
+```{r,echo=FALSE}
+iris.results=resamples(list(lda=lda.fit, knn=knn.fit))
+summary(iris.results)
+```
+
+
+Looking over the summary statistics of the two models we can see that the LDA model has a slightly higher mean accuracy than the KNN model. So it is safe to assume that the LDA model is our best model for predictions. With an average accuracy of the model being at 97.5% accuracy.
+
+```{r,echo=FALSE}
+print(lda.fit)
+
+lda.pred=predict(lda.fit, iris.test)
+confusionMatrix(lda.pred, iris.test$Species)
+```
+Using the LDA model as our primary model for predicting the species of iris by the sepal and petal's length and width. We can see in the confusion matrix there is just one error, giving an accuracy of 96.67%. Which is close to our mean accuracy of 97.5%, and well within our 1st and 3rd quartile ranges. Although the testing data and the dataset in general might be quite small, I can say that the LDA moodel is quite accurate model to predict the species of iris, depending on sepal and petal predictors.
