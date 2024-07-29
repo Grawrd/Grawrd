@@ -1,0 +1,11 @@
+---
+title: "Data Flow_Readme"
+output: html_document
+date: "2024-02-19"
+---
+
+Our first dataset comes from the National Library of Medicine database of Influenza genomes. The dataset tracks influenza virus genetics and mutations for vaccine development and surveillance. Some special properties about it, is that it has a detailed genetic information for different influenza strains. And the dataset has protein and mutations within these proteins. On the original query we had around 61,000 samples, but after a tad bit of filtering to narrow it down to just Washington state, we were left with around 7,500 samples. As for wrangling techniques a good first step would be to remove NaN values for missing mutations or strains. And then determining if they are absent or simply unaccounted for. Another step would be to normalize strains and mutations for consistency and easier analysis. 
+
+Our second dataset comes from the Washington State Department of Health. This dataset tracks vaccination coverage across county's within the state of Washington. One special property of it is that each county is track via each flu season from 2020-2024. The dataset accounted for all 39 counties across Washington fortunately. As for wrangling techniques we would begin with a first step of cleaning any NaN, duplicate, or tuples that do not contain data. Although this should be needed too much, it is still a step that should be checked. As for transformation pivoting the data around so each row represents a single county with columns for each flu season's vaccination number and coverage percentage. 
+
+The two datasets give to perspectives on influenza within Washington. One from a public health and vaccination coverage angle and the other from a genetic and research focused viewpoint. Our goal of tracking vaccination rates and effectiveness seems to feasible with the data, although forecasting influenza may be difficult with just these two datasets. Perhaps pivoting from forecasting influenza to analyzing evolution of the influenza virus for its implications for vaccine development. As for storage of both I think a relational database for both datasets would work although something as detailed as the genome sequence of the virus may need a stronger database management.
