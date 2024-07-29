@@ -1,0 +1,287 @@
+---
+title: "Stat 437 Project 2"
+author: Gerard Jaena
+     - 11398626
+header-includes:
+   - \usepackage{bbm}
+   - \usepackage{amssymb}
+   - \usepackage{amsmath}
+   - \usepackage{graphicx,float}
+   - \usepackage{natbib}
+output:
+  pdf_document: default
+fontsize: 11pt
+---
+
+```{r, echo=FALSE, warning=FALSE}
+library(knitr)
+opts_chunk$set(tidy.opts=list(width.cutoff=60),tidy=TRUE)
+```
+
+Introduction:
+This project was created to analyze two sets of data, one referring to different cancer types and their gene expressions. The other with emails and filtering them out from spam emails. Both data sets are quite large and the purpose for this project was to be able to analyze them through dimension reduction methods. By transforming the large amount of variables we have for each sample, into a smaller set of variables that still contains most of the information of the underlying data set.
+
+Methods:
+The methods that will be implemented in order to hit our goal of reducing the variables will mostly be principal component analysis and sparse principal component analysis. Firstly in all analysis projects I will clean the data and then take a random smaller sample from the original large data set. Then we will use a boxplot and histogram to decide if there are any linear combinations for a significant proportion of variation. Once we have found that there is not, we can go into implementing our PCA and SPCA methods. Which will lead us to determine a number of principal components and the variability between them. 
+
+While in the data set about the spam emails, my first step was to clean the data. This also meant checking for any highly correlated variables. And then removing them before splicing my data into a training and testing set. Once then I applied PCA to find a low dimensional structure for the data.
+
+Results:
+After looking through the graphs as seen in 1a, we can see that there is no linear combinations for a significant part of the variation in gene expressions. But as we can see in parts 1b and 1c below, using PCA or SPCA also does not give us a dominant proportion of variability in this set when using five principal components. Thus cannot serve as a signature of the five cancer types. This is due to PC1 and PC2 having a low percentage in variances. Although once applying PCA and SPCA with a more appropriate number of principal components, as we can see in part two. We can see the PCA more accurately gives us a low dimensional structure for gene expressions than sparse PCA. Although the PCA graph with 801 principal components which we found through scaling, is about the same as the PCA graph with 5 principal components. The points are much less clustered on top of each other as the SPCA graph. 
+
+For the spam email data set, I was unable to find any pattern that could be used to be able to tell which email is spam or not.
+
+Discussion:
+As the goal of this project was to create low dimensional structures for the underlying large data sets I think there could have been a few ways I could have improved my results. Firstly when it comes to cleaning the gene data, I only excluded the NA/empty variables for my cleaning process. I would have like to have tried looking into more highly correlated variables and see if taking them out would help create a better low dimensional structure. I'd also like to try the cross validation process and splicing the data into a training and testing set like I did in the spam email data into the cancer data, to see if it would be helpful.
+
+whereas in the spam email data set, the only data cleaning that took place was removing some of the highly correlated variables and taking out any empty values. And since cross validation took place, I would have also like to have tried using the SPCA method on it. Having a comparison between the PCA and SPCA model would help valuate which method is more accurate and helpful. 
+
+Appendix:
+Abstract.....................................1,2\  
+Data cleaning/Standardizing..................3\  
+Boxplot of gene expressions..................4\  
+Histogram of gene expressions................5\  
+PCA of cancer data...........................5,6\  
+SPCA of cancer data..........................7\  
+PCA2.........................................8\  
+SPCA2........................................9,10\  
+Spam email data cleaning.....................11\  
+Correlation matrix of data...................11-13\  
+Cross validation of spam email...............13,14\  
+PCA on the training set......................15\  
+
+
+\newpage
+# General rule and information
+
+You must show your work in order to get points. Please prepare your report according to the rubrics on projects that are given in the syllabus. If a project report contains only codes and their outputs and the project has a total of 100 points, a maximum of 25 points can be taken off. Please note that your need to submit codes that would have been used for your data analysis. Your report can be in .doc, .docx, .html or .pdf format. 
+
+The project will assess your skills in support vector machines and dimension reduction, for which visualization techniques you have learnt will be used to illustrate your findings. This project gives you more freedom to use your knowledge and skills in data analysis.
+
+
+# Task A: Analysis of gene expression data
+
+For this task, you need to use PCA and Sparse PCA.
+
+
+## Data set and its description
+
+Please download the data set "TCGA-PANCAN-HiSeq-801x20531.tar.gz" from the website https://archive.ics.uci.edu/ml/machine-learning-databases/00401/. A brief description of the data set is given at https://archive.ics.uci.edu/ml/datasets/gene+expression+cancer+RNA-Seq. Please read the description carefully, and you may need to read a bit more on gene expression data to help you complete this project.
+
+You need to decompress the data file since it is a .tar.gz file. Once uncompressed, the data files are "labels.csv" that contains the cancer type for each sample, and "data.csv" that contains the "gene expression profile" (i.e., expression measurements of a set of genes) for each sample. Here each sample is for a subject and is stored in a row of "data.csv". In fact, the data set contains the gene expression profiles for 801 subjects, each with a cancer type, where each gene expression profile contains the gene expressions for the same set of 20531 genes. The cancer types are: "BRCA", "COAD", "KIRC", "LUAD" and "PRAD". In both files "labels.csv" and "data.csv", each row name records which sample a label or observation is for. 
+
+
+## Data processing
+
+Please use `set.seed(123)` for random sampling via the command `sample`.
+
+*  Filter out genes (from "data.csv") whose expressions are zero for at least 300 subjects, and save the filtered data as R object "gexp2".
+
+*  Use the command `sample` to randomly select 1000 genes and their expressions from "gexp2", and save the resulting data as R object "gexp3".
+
+* Use the command `scale` to standardize the gene expressions for each gene in "gexp3". Save the standardized data as R object "stdgexpProj2".
+
+You will analyze the standardized data.
+
+rm(list=ls())
+```{r}
+set.seed(123)
+
+labels = read.csv("C:/Users/Gerard Jaena/Documents/School Data Analytics/Stat 437/Project/Project 2/labels.csv")
+data = read.csv("C:/Users/Gerard Jaena/Documents/School Data Analytics/Stat 437/Project/Project 2/data.csv")
+data = na.omit(data)
+
+gexp2 = data[, (colSums(data==0, na.rm = TRUE) < 300), drop = TRUE]
+#gexp2 = data[, (colSums(data==0) < 300)]
+gexp3 = sample(gexp2, 1000)
+stdgexpProj2 = scale(gexp3)
+```
+
+
+## Questions to answer when doing data analysis
+
+Please also investigate and address the following when doing data analysis:
+
+(1.a) Are there genes for which linear combinations of their expressions explain a significant proportion of the variation of gene expressions in the data set? Note that each gene corresponds to a feature, and a principal component based on data version is a linear combination of the expression measurements for several genes.
+
+```{r}
+
+boxplot(stdgexpProj2)
+hist(stdgexpProj2)
+```
+
+Looking at just these two plots I do not believe there is a certain gene that has a linear combinations of their expression show a significant proportion of the variation of gene expressions in this data set. Although the variation of genes seem to show a normal distribution within the boxplot of the data.
+
+(1.b) Ideally, a type of cancer should have its "signature", i.e., a pattern in the gene expressions that is specific to this cancer type. From the "labels.csv", you will know which expression measurements belong to which cancer type. Identify the signature of each cancer type (if any) and visualize it. For this, you need to be creative and should try both PCA and Sparse PCA.
+
+```{r}
+
+stdgexpProj2.df = as.data.frame(stdgexpProj2)
+stdgexpProj2.df$labels = labels[, 2]
+stdgexpProj2.df = stdgexpProj2.df[, c(1001, 1:1000)]
+```
+
+
+```{r}
+# Principal Component Analysis
+library(ggfortify)
+
+stdgexpProj2.df2 = stdgexpProj2.df[2:1001]
+pca = prcomp(stdgexpProj2.df2)
+autoplot(pca, data = stdgexpProj2.df, colour = 'labels')
+```
+
+```{r}
+pca.var = pca$sdev^2
+pca.per = round(pca.var/sum(pca.var) * 100, 1)
+barplot(pca.per)
+```
+
+```{r}
+# Sparse Principal Component Analysis
+spca = elasticnet::spca(stdgexpProj2.df2, K = 5, para = rep(1e-06, 5), type = c("predictor"),
+                        sparse = c("penalty"), lambda = 1e-06, max.iter = 200, eps.conv = 0.001)
+dim(spca$loadings)
+```
+
+(1.c) There are 5 cancer types. Would 5 principal components, obtained either from PCA or Sparse PCA, explain a dominant proportion of variability in the data set, and serve as the signatures of the 5 cancer types? Note that the same set of genes were measured for each cancer type.
+
+Using 5 principal components from either PCA or Sparse PCA would not explain a dominant proportion of variability in this set of data. They would also not serve as the signature for these 5 cancer types. Both PC1 and PC2 have a low percentage of variances so it would be hard to say if there are any dominant proportions between the two.
+
+
+## Identify patterns and low-dimensional structures
+
+Please implement the following:
+
+(2.a) Apply PCA, determine the number of principal components, provide visualizations of low-dimensional structures, and report your findings. Note that you need to use "labels.csv" for the task of discoverying patterns such as if different cancer types have distinct transformed gene expressions (that are represented by principal components). For PCA or Sparse PCA, low-dimensional structures are usually represented by the linear space spanned by some principal components.
+
+```{r}
+pca2 = scale(stdgexpProj2.df2, center=TRUE, scale=TRUE)
+dim(pca2)
+
+pca2.1 = prcomp(pca2)
+autoplot(pca2.1, data = stdgexpProj2.df, colour = "labels")
+```
+Using PCA there are 801 principle components with PC1 having 12.01% variability, while PC2 has 9.86% variability. As we can see with the green dots being the most separated from the rest, KIRC has the most distinct transformed gene expressions. And BRCA, COAD, and PRAD having some separation from the others would would say they are partially distinct.
+
+(2.b) Apply Sparse PCA, provide visualizations of low-dimensional structures, and report your findings. Note that you need to use "labels.csv" for the task of discoverying patterns. Your laptop may not have sufficient computational power to implement Sparse PCA with many principal components. So, please pick a value for the sparsity controlling parameter and a value for the number of principal components to be computed that suit your computational capabilities.
+
+```{r}
+nci.labs = unique(stdgexpProj2.df$labels)
+nci.labs1 = nci.labs[nci.labs %in% c("BRCA", "COAD", "KIRC", "LUAD", "PRad")]
+
+sLVTwo = spca$loadings[, 1:2]
+sSVTwo = pca2 %*% sLVTwo
+
+pch.group = rep(21, nrow(sSVTwo))
+pch.group[nci.labs1 == "BRCA"] = 21
+pch.group[nci.labs1 == "COAD"] = 22
+pch.group[nci.labs1 == "KIRC"] = 23
+pch.group[nci.labs1 == "LUAD"] = 24
+pch.group[nci.labs1 == "PRAD"] = 25
+
+col.group = rep("blue", nrow(sSVTwo))
+col.group[nci.labs1 == "BRCA"] = "red"
+col.group[nci.labs1 == "COAD"] = "yellow"
+col.group[nci.labs1 == "KIRC"] = "green"
+col.group[nci.labs1 == "LUAD"] = "blue"
+col.group[nci.labs1 == "PRAD"] = "purple"
+
+par(mar = c(5, 4.5, 1, 1), mgp = c(1.5, 0.5, 0))
+
+plot(sSVTwo[, 1], sSVTwo[, 2], xlab = "SPC1", ylab = "SPC2", col = "black", pch = pch.group, bg = col.group, 
+     las = 1, asp = 1, cex = 0.8)
+```
+Within the sparse PCA it is very hard to identify any pattern as almost all of the points are clustered on top of each other.
+
+
+(2.c) Do PCA and Sparse PCA reveal different low-dimensional structures for the gene expressions for different cancer types?
+
+PCA has a better low-dimensional structure for gene expressions for different cancer types then sparse PCA.
+
+
+
+# Task B: analysis of SPAM emails data set
+
+For this task, you need to use PCA and SVM.
+
+## Dataset and its description
+
+The spam data set ``SPAM.csv'' is attached and also can be downloaded from https://web.stanford.edu/~hastie/CASI_files/DATA/SPAM.html. More information on this data set can be found at: https://archive.ics.uci.edu/ml/datasets/Spambase. The column "testid" in "SPAM.csv" was used to train a model when the data set was used by other analysts and hence should not be used as a feature or the response, the column "spam" contains the true status for each email, and the rest contain measurements of features. Here each email is represented by a row of features in the .csv file, and a "feature" can be regarded as a "predictor". Also note that the first 1813 rows, i.e., observations, of the data set are for spam emails, and that the rest for non-spam emails.
+
+## Data processing
+
+Please do the following:
+
+* Remove rows that have missing values. For a .csv file, usually a blank cell is treated as a missing value.
+
+* Check for highly correlated features using the absolute value of sample correlation. Think about if you should include all or some of highly correlated features into an SVM model. For example, "crl.ave" (average length of uninterrupted sequences of capital letters), "crl.long" (length of longest uninterrupted sequence of capital letters) and "crl.tot" (total number of capital letters in the e-mail) may be highly correlated. Whethere you choose to remove some highly correlated features from subsequent analysis or not, you need to provide a justification for your choice.
+
+Note that each feature is stored in a column of the original data set and each observation in a row. You will analyze the processed data set. 
+
+```{r}
+
+spam = read.csv("C:/Users/Gerard Jaena/Documents/School Data Analytics/Stat 437/Project/Project 2/SPAM.csv")
+spam = na.omit(spam)
+dim(spam)
+
+spam = transform(spam, testid = as.numeric(testid))
+spam = transform(spam, spam = as.numeric(spam))
+```
+
+```{r}
+library(corrplot)
+
+s1 = cbind(spam$crl.ave, spam$crl.long)
+corMatFeature = cor(s1)
+x = abs(corMatFeature)
+corrplot(x, method = "shade", addCoef.col = "grey", tl.cex = 0.57, mar = c(4.5, 1, 1, 1))
+```
+
+```{r}
+s2 = cbind(spam$crl.long, spam$crl.tot)
+corMatFeature = cor(s2)
+x = abs(corMatFeature)
+corrplot(x, method = "shade", addCoef.col = "grey", tl.cex = 0.57, mar = c(4.5, 1, 1, 1))
+
+spam.df = subset(spam, select = -c(57:59))
+dim(spam.df)
+```
+
+Looking at the correlation matrix, I decided to take out the variables crl.ave, crl.long, and crl.tot as they have a high correlation to each other. As they have a correlation score of 0.49 and 0.48, we would consider this high and the highly correlated variables can be skewing the data.
+
+
+## Classifiction via SVM
+
+Please do the following:
+
+(3.a) Use `set.seed(123)` wherever the command `sample` is used or cross-validation is implemented, randomly select without replacement 300 observations from the data set and save them as training set "train.RData", and then randomly select without replacement 100 observations from the remaining observations and save them as "test.RData". You need to check if the training set contains observations from both classes; otherwise, no model can be trained.
+
+```{r}
+set.seed(123)
+
+train.RData = spam.df[sample(nrow(spam.df), 300, replace = F),]
+test.RData = spam.df[sample(nrow(spam.df), 100, replace = F),]
+
+```
+
+
+(3.b) Apply PCA to the training data "train.RData" and see if you find any pattern that can be used to approximately tell a spam email from a non-spam email.
+
+```{r}
+library(ggfortify)
+
+pca3 = prcomp(train.RData)
+autoplot(pca3, data = train.RData, colour = "spam")
+
+```
+
+Looking at the graph above, a majority of the points are concentrated in one area making it hard to factor which emails are spam.
+
+
+(3.c) Use "train.RData" to build an SVM model with linear kernel, whose `cost` parameter is determined by 10-fold cross-validation, for which the features are predictors, the status of email is the response, and `cost` ranges in `c(0.01,0.1,1,5,10,50)`. Apply the obtained optimal model to "test.RData", and report via a 2-by-2 table on spams that are classified as spams or non-spams and on non-spams that are classified as non-spams or spams. 
+
+
+(3.d) Use "train.RData" to build an SVM model with radial kernel, whose "cost" parameter is determined by 10-fold cross-validation, for which the features are predictors, the status of email is the response, `cost` ranges in `c(0.01,0.1,1,5,10,50)`, and `gamma=c(0.5,1,2,3,4)`. Report the number of support vectors. Apply the obtained optimal model to "test.RData", and report via a 2-by-2 table on spams that are classified as spams or non-spams and on non-spams that are classified as non-spams or spams. 
+
+(3.e) Compare and comment on the classification results obtained by (3.c) and (3.d).
