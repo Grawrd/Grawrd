@@ -1,0 +1,582 @@
+---
+title: "Stat 437 Project 1"
+author: 
+     - Gerard Jaena (11398626)
+header-includes:
+   - \usepackage{bbm}
+   - \usepackage{amssymb}
+   - \usepackage{amsmath}
+   - \usepackage{graphicx,float}
+   - \usepackage{natbib}
+output:
+  pdf_document: default
+fontsize: 11pt
+---
+
+```{r, echo=FALSE, warning=FALSE}
+library(knitr)
+opts_chunk$set(tidy.opts=list(width.cutoff=60),tidy=TRUE)
+```
+
+Introduction:  
+This project was created to classify different observations into their associated cancer types. We are given a large sample size of DNA, each with many attributes of a RNA-Seq gene expression. The purpose of this project is to classify each DNA into one of the five different types of tumors depending on the attributes given in the data. Another purpose of this project is to figure out using which method will gives us the best results and if using different sample sizes in our classification models will make a more accurate model.
+
+Methods:  
+The methods we will be covering in the project will first be clustering the observations through k-means, using both the gap statistic and W(k) method to estimate the number of clusters. Hierarchical clustering with average, single, and complete linkage. Afterwards, for the classification of observations into the cancer types I will use both a quadratic discriminant analysis model, after validating the observation follow a Gaussian mixture assumption. And a k-nearest neighbor model to see which model is more accurate.
+
+Results:  
+After using the mentioned methods above, when it comes to clustering I found a very negligible difference to the estimate number of clusters when it comes to both the gap statistic and W(k) methods for estimating. In this specific case I feel as though either can be used without much significant differences to the rest of the model or affecting the outcome in a significant way. But overall finding the k-means method a more accurate way of estimating the number of clusters. While as in the classification of the samples into the cancer types, I have found the k-NN method to have both less false positives and false negatives than the quadratic discriminant model. Perhaps due to k-NN being the more flexible model and QDA, being stronger when there is less observations.
+
+Discussion:  
+To further improve our results as to how to create the best possible model with out data. I think some other methods should be at the minimum tested against my kNN and QDA methods. Whether it be LDA or using logistic regression/regression techniques I believe it would be beneficial to see how they do in comparison to the ones used in this project. Also one of the biggest and an area that could almost always be improved is doing a good job thoroughly cleaning the data. There could have been duplicates, bad entries, high leverage/outliers skewing it. Although we did take high leverage points out during the estimation number of cluster while using k-means method. There could have been errors even before it. 
+
+Appendix:  
+Abstract.....................................................1  
+K-means clustering via gap statistic.........................4,5  
+K-means clustering via W(k)..................................7,8  
+Comparison of K-means estimations............................9  
+K-means clustering via gap statistic & W(k) w/250 samples....9-12  
+Hierarchical clustering......................................12-19  
+Data splicing for QDA & kNN methods..........................20-22  
+Quadratic Discriminant Analysis..............................23-26  
+k-nearest neighbor classification............................26,27  
+
+
+
+
+\newpage
+# General rule and information
+You must show your work in order to get points. Please prepare your report according to the rubrics on projects that are given in the syllabus. In particular, please note that your need to submit codes that would have been used for your data analysis. Your report can be in .doc, .docx, .html or .pdf format. 
+
+The project will assess your skills in	K-means clustering,Hierarchical clustering, Nearest-neighbor classifier, and discriminant analysis for classification, for which visualization techniques you have learnt will be used to illustrate your findings. 
+
+# Data set and its description
+
+Please download the data set "TCGA-PANCAN-HiSeq-801x20531.tar.gz" from the website https://archive.ics.uci.edu/ml/machine-learning-databases/00401/. A brief description of the data set is given at https://archive.ics.uci.edu/ml/datasets/gene+expression+cancer+RNA-Seq. 
+
+You need to decompress the data file since it is a .tar.gz file. Once uncompressed, the data files are "labels.csv" that contains the cancer type for each sample, and "data.csv" that contains the "gene expression profile" (i.e., expression measurements of a set of genes) for each sample. Here each sample is for a subject and is stored in a row of "data.csv". In fact, the data set contains the gene expression profiles for 801 subjects, each with a cancer type, where each gene expression profile contains the gene expressions for the same set of 20531 genes. The cancer types are: "BRCA", "KIRC", "COAD", "LUAD" and "PRAD". In both files "labels.csv" and "data.csv", each row name records which sample a label or observation is for.  
+
+
+# Task A. Clustering
+
+For this task, you need to apply k-means and hierarchical clustering to cluster observations into their associated cancer types, and report your findings scientifically and professionally. 
+Your laptop may not have sufficient computational power to implement k-means and hierarchical clustering on the whole data set, and genes whose expressions are zero for most of the subjects may not be so informative of a cancer type.
+
+Please use `set.seed(123)` for random sampling via the command `sample`, random initialization of `kmeans`, implementing the gap statistic, and any other process where artificial randomization is needed.
+
+(**Task A1**) Complete the following data processing steps:
+
+*  Filter out genes (from "data.csv") whose expressions are zero for at least 300 subjects, and save the filtered data as R object "gexp2".
+
+rm(list=ls())
+```{r}
+set.seed(123)
+
+# make variable data equal to data.csv file
+data = read.csv("C:/Users/Gerard Jaena/Documents/School Data Analytics/Stat 437/Project/Project 1/data.csv")
+View(data)
+
+# filter expressions that are 0 for 300 subjects
+gexp2 = data[, (colSums(data == 0, na.rm = TRUE) < 300), drop=TRUE]
+```
+
+*  Use the command `sample` to randomly select 1000 genes and their expressions from "gexp2", and save the resulting data as R object "gexp3".
+
+```{r}
+# Sample of 1000 genes
+gexp3 = sample(gexp2, 1000)
+
+gexp3$X = gexp2[,1]
+```
+
+* Use the command `sample` to randomly select 30 samples and their labels from the file "labels.csv", and save them as R object "labels1". For these samples, select the corresponding samples from "gexp3" and save them as R object "gexpProj1".
+
+```{r}
+# make variable labels equal to the labels.csv file
+labels = read.csv("C:/Users/Gerard Jaena/Documents/School Data Analytics/Stat 437/Project/Project 1/labels.csv")
+View(labels)
+
+# labels1 is a sample of 30 labels
+labels1 = labels[sample(nrow(labels), 30), ]
+
+# selecting the corresponding samples
+gexpProj1 = merge(gexp3, labels1, by = "X")
+gexpProj1 = gexpProj1[, c(1, 1002, 2:1001)]
+```
+
+* Use the command `scale` to standard the gene expressions for each gene in "gexpProj1", so that they have sample standard deviation 1. Save the standardized data as R object "stdgexpProj1".
+
+```{r}
+# Standardize gene expression
+ge = gexpProj1[, -c(1,2)]
+
+stdgexpProj1 = scale(ge)
+
+stdgexpProj1 = as.data.frame(stdgexpProj1)
+
+stdgexpProj1$X = gexpProj1[,1]
+
+stdgexpProj1 = stdgexpProj1[, c(1001, 2:1000)]
+```
+
+```{r, include=FALSE}
+# prints out too many pages of data
+stdgexpProj1
+```
+
+
+(**Task A2**) 
+
+(**Part 1 of Task A2**) Randomly pick 50 genes and their expressions from "stdgexpProj1", and do the following to these expressions: apply the "gap statistic" to estimate the number of clusters, apply K-means clustering with the estimated number of clusters given by the gap statistic, visualize the classification results using techniques given by "LectureNotes3_notes.pdf.pdf", and provide a summary on classification errors. You may use the command `table` and "labels1" to obtain classification errors. Note that the cluster numbering given by `kmeans` will usually be coded as follows:
+
+```
+#   Class  label
+#     PRAD  5
+#     LUAD  4
+#     BRCA  1
+#     KIRC  3
+#     COAD  2
+```
+
+When you apply `clusGap`, please use arguments `K.max=10, B=200,iter.max=100`, and when you use `kmeans`, please use arguments `iter.max = 100, nstart=25, algorithm = c("Hartigan-Wong")`.
+
+```{r}
+set.seed(123)
+
+# random 50 genes
+rand = stdgexpProj1[, sample(ncol(stdgexpProj1), 50)]
+
+# using gap statistic to estimate the number of clusters
+library(cluster)
+gapstat = clusGap(rand, kmeans, K.max=10, B=200, iter.max=100)
+
+# using K-means clustering w/ the estimated number of clusters by the gap statistic via previous step
+kmean = maxSE(gapstat$Tab[, "gap"], gapstat$Tab[, "SE.sim"], method = "Tibs2001SEmax")
+kmean
+```
+
+```{r}
+# Graphs of the classification
+matrix1 = as.matrix(rand)
+
+km.out = kmeans(matrix1, 1, iter.max = 100, nstart = 25, algorithm = c("Hartigan-Wong"))
+
+rand$cluster = factor(km.out$cluster)
+rand$X = stdgexpProj1[, 1]
+
+library(dplyr)
+library(ggplot2)
+
+p1 = ggplot(rand, aes(rand[, 1], rand[, 2])) + xlab("Gene 1 expressions") +
+  ylab("Gene 2 expression") + theme_bw() + geom_point(aes(color = cluster), na.rm = T) +
+  theme(legend.position = "right") + ggtitle("50 feature Clustering") +
+  theme(plot.title = element_text(hjust = 0.5))
+p1
+
+table(labels1)
+```
+
+
+The errors in classification for K means, will assume there are k amount of clusters. While all clusters have the same sum square error and will have the same significance in all clusters. In order to find the best fit for the data we should use different classification methods. In this project case each cluster was assigned to one of the 50 samples.
+
+(**Part 2 of of Task A2**) Upon implementing `kmeans` with $k$ as the number of clusters, we will obtain the "total within-cluster sum of squares" $W\left(k\right)$ from the output `tot.withinss` of `kmeans`. If we try a sequence of $k=1,2,3,...,10$, then we get $W\left(k\right)$ for
+each $k$ between $1$ and $10$. Let us look at the difference
+$\Delta_{k}=W\left(  k\right)  -W\left(  k+1\right)$ for $k$ ranging from $1$ to $9$. The $K^{\ast}$ for which
+$$
+\left\{\Delta_{k}:k<K^{\ast}\right\}  \gg\left\{  \Delta_{k}:k\geq K^{\ast}\right\}
+$$
+is an estimate of the true number $K$ of clusters in the data, where $\gg$ means "much larger". Apply this method to obtain an estimate of $K$ for the data you created in **Part 1**, and provide a plot of $W\left(k\right)$ against $k$ for each $k$ between $1$ and $10$. Compare this estimate with the estimate obtained in **Part 1** given by the gap statistic, comment on the accuracy of the two estimates, and explain why they are different.
+
+```{r}
+set.seed(123)
+
+# Estimate of K for the data in part 1
+k.means = function(df, x) {
+  km = kmeans(df, x, iter.max = 100, nstart = 25, algorithm = c("Hartigan-Wong"))
+}
+
+
+
+
+for (i in 1:10) {
+  k = k.means(matrix1, i)
+  print(k$tot.withinss)
+}
+
+
+
+
+estimate = data.frame(K = c(1:10), Estimate1 = c(1450, 1240.696, 1121.016, 1010.749, 914.2897, 836.4068, 771.1316,
+                                                 706.666, 651.8374, 601.1967))
+
+# Plot of W(k) against k for each k betwen the loop
+p2 = ggplot(estimate, aes(K, Estimate1)) + xlab("k") + ylab("W(k)") +
+  geom_point() + ggtitle("Estimate of K") + theme(plot.title = element_text(hjust = 0.5))
+p2
+```
+
+```{r}
+# Comparison of estimate to the estimate from part 1's gap statistic
+for (i in 1:10) {
+  km2 = k.means(matrix1, i)
+  print(km2$tot.withinss)
+}
+
+
+estimate$Estimate2 = c(1450, 1240.696, 1121.016, 1010.814, 914.2897, 836.4068, 771.1316, 706.666, 651.8374, 601.8256)
+estimate
+```
+
+The estimate of K which was given by the gap statistic will estimate k based on differences between within cluster sums of squares. While the estimate of k from W(k) estimates k as the number of clusters obtained by the total within cluster sum of squares. The main difference being that the W(k) method uses the total within cluster and the gap statistic uses the differences within cluster.
+
+(**Part 3 of of Task A2**) Randomly pick 250 genes and their expressions from "stdgexpProj1", and for these expressions, do the analysis in **Part 1** and **Part 2**. Report your findings, compare your findings with those from **Part 1** and **Part 2**; if there are differences between these findings, explain why. Regard using more genes as using more features, does using more features necessarily give more accurate clutering or classification results? 
+
+```{r}
+set.seed(123)
+
+# random 250 genes
+rand2 = stdgexpProj1[, sample(ncol(stdgexpProj1), 250)]
+
+
+# using gap statistic for estimate number of clusters
+gap1 = clusGap(na.omit(rand2), kmeans, K.max = 10, B = 250, iter.max = 100)
+
+
+# Use K-means clustering with the estimate clusters given by the gap statistic
+k.means = maxSE(gap1$Tab[, "gap"], gap1$Tab[, "SE.sim"], method = "Tibs2001SEmax")
+k.means
+
+
+# Graphs of the classification results
+matrix.rand2 = as.matrix(rand2)
+
+km.out.1 = kmeans(na.omit(matrix.rand2), 5, iter.max = 100, nstart = 25, algorithm = c("Hartigan-Wong"))
+
+rand2$cluster = factor(km.out.1$cluster)
+rand2$X = stdgexpProj1[, 1]
+
+p3 = ggplot(rand2, aes(rand2[, 1], rand2[, 2])) +
+  xlab("Gene 1 expression") + ylab("Gene 2 expression") + theme_bw() +
+  geom_point(aes(color = cluster), na.rm = T) + theme(legend.position = "right") +
+  ggtitle("250 feature Clustering") + theme(plot.title = element_text(hjust = 0.5))
+p3
+```
+
+```{r}
+set.seed(123)
+
+k.means = function(df, x) {
+  km = kmeans(df, x, iter.max = 100, nstart = 25, algorithm = c("Hartigan-Wong"))
+}
+
+# Method for estimate of K for data in Part 1
+for (i in 1:10) {
+  k = k.means(matrix.rand2, i)
+  print(k$tot.withinss)
+}
+
+estimate2 = data.frame(K = c(1:10), Estimate1 = c(7250, 6346.151, 5769.004, 5199.245, 4679.552, 4307.934, 3993.311,
+                                                3702.358, 3429.824, 3166.085))
+
+# W(k) plot against k for when k is between 1 and 10
+p4 = ggplot(estimate2, aes(K, Estimate1)) + xlab("k") + ylab("W(k)") + geom_point() + ggtitle("Estimate of K") +
+  theme(plot.title = element_text(hjust = 0.5))
+p4
+
+# Comparison of estimate with previous estimate
+for (i in 1:10) {
+  km.out1 = k.means(matrix.rand2, i)
+  print(km.out1$tot.withinss)
+}
+
+estimate2$Estimate2 = c(7250, 6134.221, 5342.334, 4549.335, 4081.71, 3752.054, 3443.701, 3143.002, 2887.669, 2670.278)
+estimate2
+```
+
+
+Again the differences between the two findings can be due to the way the gap statistic and W(k) get an estimate of k. As the gap statistic will use an estimate based on the differences of sums of squares within the cluster, and W(k) will use the total sum of squares within clusters. The two methods will give a different estimate of k. Except for maybe when k=1 as there is only one cluster. As there is no other cluster to get a difference from which will also be the total sum of squares. Using more features gave us a little bit more of a difference between the two methods and is a bit more accurate than using just 50 features.
+
+
+(**Task A3**) Randomly pick 250 genes and their expressions from "stdgexpProj1", and for these expressions, do the following: respectively apply hierarchical clustering with average linkage, single linkage, and complete linkage to cluster subjects into groups, and create a dendrogram. For the dendrogram obtained from average linkage, find the height at which cutting the dendrogram gives the same number of groups in "labels1", and comment on the clustering results obtained at this height by comparing them to the truth contained in "labels1".
+
+```{r}
+set.seed(123)
+
+# Randomly select 250 genes and expressions from stdgexpProj1
+rand2_stdgexpProj1 = stdgexpProj1[, sample(ncol(stdgexpProj1), 250)]
+
+# Hierarchical clustering of cluster subjects
+
+# average linkage
+hc.average = hclust(dist(rand2_stdgexpProj1), method = "average")
+plot(hc.average, main = "Average Linkage")
+
+# single linkage
+hc.single = hclust(dist(rand2_stdgexpProj1), method = "single")
+plot(hc.single, main = "Single Linkage", xlab = "", sub = "")
+
+# complete linkage
+hc.complete = hclust(dist(rand2_stdgexpProj1), method = "complete")
+plot(hc.complete, main = "Complete Linkage", xlab ="", sub = "")
+```
+
+```{r}
+# Dendrogram for each linkage
+source("C:/Users/Gerard Jaena/Documents/School Data Analytics/Stat 437/Project/Project 1/Plotggdendro.r")
+library(ggdendro)
+
+# average linkage
+ggdendrogram(hc.average, leaf_labels = TRUE, rotate = FALSE)
+
+# single linkage
+ggdendrogram(hc.single, leaf_labels = TRUE, rotate = FALSE)
+
+# complete linkage
+ggdendrogram(hc.complete, leaf_labels = TRUE, rotate = FALSE)
+```
+
+```{r}
+# Height of the cut when cutting the dendrogram from average linkage
+# average linkage dendrogram
+hc.average$height
+
+# height with 5 clusters
+height.average = hc.average$height[length(hc.average$height) - 4]
+height.average
+
+# cut dendrogram
+cut.dendrogram = cutree(hc.average, h = hc.average$height[(length(hc.average$height)) - 4])
+
+# comparing groups
+table(labels1$Class)
+
+table(cut.dendrogram)
+```
+
+Results from the average linkage dendrogram height does not match with the results in "labels1", as each cluster has a different result.
+
+
+
+# Task B. Classification
+
+For this task, we will use the same data set you would have downloaded. Please use `set.seed(123)` for random sampling via the command `sample` and any other process where artificial randomization is needed. 
+
+(**Task B1**) After you obtain "labels.csv" and "data.csv", do the following:
+
+*  Filter out genes (from "data.csv") whose expressions are zero for at least 300 subjects, and save the filtered data as R object "gexp2".
+
+*  Use the command `sample` to randomly select 1000 genes and their expressions from "gexp2", and save the resulting data as R object "gexp3". 
+
+*  Pick the samples from "labels.csv" that are for cancer type "LUAD" or "BRCA", and save them as object "labels2". For these samples, pick the corresponding gene expressions from "gexp3" and save them as object "stdgexp2"
+
+
+```{r}
+set.seed(123)
+
+# Filter out genes from data.csv with expressions are zero for at least 300 subjects
+gexp2 = data[, (colSums(data == 0, na.rm = TRUE) < 300), drop=TRUE]
+
+# Randomly select 1000 genes and expression from gexp2
+gexp3 = sample(gexp2, 1000)
+
+# filter samples from labels.csv containg cancer type LUAD and BRCA
+labels2 = filter(labels, labels$Class == "LUAD"| labels$Class == "BRCA")
+
+gexp3$X = labels$X
+gexp3 = gexp3[, c(1001, 1:1000)]
+
+# for samples, pick corresponding gene expressions
+stdgexp2 = merge(labels2, gexp3, by = "X")
+```
+
+
+(**Taks B2**) The assumptions of linear or quadratic discriminant analysis requires that each observation follows a Gaussian distribution given the class or group membership of the observation, and that each observation follows a Gaussian mixture model. In our settings here, each observation (as a row) within a group would follow a Gaussian with dimensionality equal to the number of genes (i.e., number of entries of the row). So, the more genes whose expressions we use for classification, the higher the dimension of these Gaussian distributions. Nonetheless, you need to check if the Gaussian mixture assumption is satisfied. Note that we only consider two classes "LUAD" and "BRCA", for which the corresponding Gaussian mixture has 2 components and hence has 2 bumps when its density is plotted.
+
+Do the following and report your findings on classification:
+
+* Randomly pick 3 genes and their expressions from "stdgexp2", and save them as object "stdgexp2a".
+
+* Randomly pick 60% of samples from "stdgexp2a", use them as the training set, and use the rest as the test set. You can round down the number of samples in the training set by the command `floor` if it is not an integer.
+
+
+Build a quadratic discriminant analysis model using the training set, and apply the obtained model to the test set to classify each of its observations. You should code "BRCA" as 0 and "LUAD" as 1. If for an observation the posterior probability of being "BRCA" is predicted by the model to be greater than 0.5, the observation is classified as "BRCA". Report via a 2-by-2 table on the classification errors. Note that the predicted posterior probability given by `qda` is for an observation to belong to class "BRCA".
+
+Before building a quadratic discriminant analysis model, you need to check for highly correlated gene expressions, i.e., you need to check the sample correlations between each pair of columns of the training set. If there are highly correlated gene expressions, the estimated covariance matrix can be close to to being singular, leading to unstable inference. You can remove a column from two columns when their contained expressions have sample correlation greater than 0.9 in absolute value.
+
+```{r}
+set.seed(123)
+
+# Random selection for 3 genes and their expressions from stdgexp2
+stdgexp2a = stdgexp2[, sample(1:ncol(stdgexp2), 3)]
+n = nrow(stdgexp2a)
+
+# Get subsets of data
+train.data = sample(1:n, floor(0.6 * n))
+test.data = sample(1:n, floor(0.4 * n))
+#test.data = (1:n)[-train.data]
+
+train1 = stdgexp2a[train.data, ]
+test1 = stdgexp2a[test.data, ]
+
+# relabel
+labels2$Code[labels2$Class == "LUAD"] = 1
+labels2$Code[labels2$Class == "BRCA"] = 2
+labels2a = as.numeric(labels2$Code)
+labels2a[labels2a == 1] = 0
+labels2a[labels2a == 2] = 1
+train.label.1 = labels2a[train.data]
+test.label.1 = labels2a[test.data]
+
+# check and heatmap 
+library(reshape)
+
+corr.Matrix1 = cor(train1)
+melted.corr.matrix = melt(corr.Matrix1)
+ggplot(data = melted.corr.matrix, aes(x = X1, y = X2, fill = value)) +
+  geom_tile() + scale_fill_gradient2(low = "green", high = "red")
+```
+
+```{r}
+# check highly correlated variables
+corr.Matrix.12 = corr.Matrix1
+
+# Diagonal entries of correlation matrix should be 1
+diag(corr.Matrix.12) = 0
+diag.1 = which(abs(corr.Matrix.12) > 0.9, arr.ind = TRUE)
+diag.1
+
+# take X and Y from test and training data subsets
+testX1 = as.matrix(test1)
+testY1 = as.numeric(test.label.1)
+trainX1 = as.matrix(train1)
+trainY1 = as.numeric(train.label.1)
+
+# combine labels and expressions
+train2 = as.data.frame(cbind(train.label.1, train1))
+```
+
+```{r}
+# QDA model with the training set
+library(MASS)
+
+#set.seed(123)
+
+qda.fit = qda(train.label.1 ~ ., data = train2)
+pred = predict(qda.fit)$class
+
+matrix2 = as.matrix(pred)
+
+
+# Table of classification errors
+table(matrix2 > 0.5, matrix2 < 0.5, dnn = c("QDA Estimated Class Label", "True Class Label"))
+```
+
+
+
+(**Taks B3**) Do the following:
+
+* Randomly pick 100 genes and their expressions from "stdgexp2", and save them as object "stdgexp2b".
+
+* Randomly pick 75% of samples from "stdgexp2b", use them as the training set, and use the rest as the test set. You can round down the number of samples in the training set by the command `floor` if it is not an integer.
+
+Then apply quadratic discriminant analysis by following the requirements given in **Taks B2**. Compare classification results you find here with those found in **Taks B2**, and explain on any difference you find between the classification results.
+
+```{r}
+set.seed(123)
+
+stdgexp2b = stdgexp2[, sample(1:ncol(stdgexp2), 100)]
+n1 = nrow(stdgexp2b)
+
+# Subset data
+trainid = sample(1:n1, floor(0.75 * n1))
+testid = sample(1:n1, floor(0.25 * n1))
+#testid = (1:n1)[-trainid]
+
+trainOB = stdgexp2b[trainid, ]
+testOB = stdgexp2b[testid, ]
+
+# Relabel
+labels2$Code[labels2$Class == "LUAD"] = 1
+labels2$Code[labels2$Class == "BRCA"] = 2
+labels2a = as.numeric(labels2$Code)
+labels2a[labels2a == 1] = 0
+labels2a[labels2a == 2] = 1
+trainLb = labels2a[trainid]
+testLb = labels2a[testid]
+
+# Graph of heatmap and correlations
+corr.Matrix2 = cor(trainOB)
+melt.corr.Matrix2 = melt(corr.Matrix2)
+ggplot(data = melt.corr.Matrix2, aes(x = X1, y = X2, fill = value )) +
+  geom_tile() + scale_fill_gradient2(low = "green", high = "red")
+```
+
+```{r}
+# highly correlated variables
+corr.Matrix.2 = corr.Matrix2
+
+# set diagonal entries to be 0
+diag(corr.Matrix.2) = 0
+diag.2 = which(abs(corr.Matrix.2) > 0.9, arr.ind = TRUE)
+diag.2
+
+# extract X and Y from test and training subsets
+testX = as.matrix(testOB)
+testY = as.numeric(testLb)
+trainX = as.matrix(trainOB)
+trainY = as.numeric(trainLb)
+
+# combine labels and expressions
+train3 = as.data.frame(cbind(trainLb, trainOB))
+test3 = as.data.frame(cbind(testLb, testOB))
+```
+
+```{r}
+set.seed(123)
+
+# Apply QDA
+qda.fit2 = qda(trainLb ~ ., data = train3)
+pred2 = predict(qda.fit2)$class
+
+# Predictions as a matrix
+matrix3 = as.matrix(pred2)
+
+# Table of classification errors
+table(matrix3 < 0.5, matrix3 >0.5, dnn = c("QDA Estimated Class Label", "True Class Label"))
+
+# Comparison from task B2
+table(matrix2 < 0.5, matrix2 > 0.5, dnn = c("QDA Estimated Class Label", "True Class Label"))
+
+```
+
+Larger sample sizes of 100 gene expressions there seems to be less false negatives, compared to a sample size of 3 gene expressions. While False positives have no significant difference between the two sample sizes.
+
+
+(**Taks B4**) Do the following:
+
+* Randomly pick 100 genes and their expressions from "stdgexp2", and save them as object "stdgexp2b".
+
+* Randomly pick 75% of samples from "stdgexp2b", use them as the training set, and use the rest as the test set. You can round down the number of samples in the training set by the command `floor` if it is not an integer.
+
+Then apply k-nearest-neighbor (k-NN) method with neighborhood size k=3 to the test data to classify each observation in the test set into one of the cancer types. Here, for an observation, if the average of being cancer type "BRCA" is predicted by k-NN to be greater than 0.5, then the observation is classified as being "BRCA". Report via a 2-by-2 table on the classification errors. Compare and comment on the classification results obtained here to those obtain in **Taks B3**. If there is any difference between the classification results, explain why.
+
+```{r}
+library(class)
+set.seed(123)
+
+stdgexp2b = stdgexp2[, sample(1:ncol(stdgexp2), 100)]
+
+# apply kNN method with k=3
+kNN = knn(train3, test3, cl = trainLb, k = 3)
+kN = as.matrix(kNN)
+
+# Table of classification errors
+table(kN < 0.5, kN > 0.5, dnn = c("kNN Estimated Class Label", "True Class Label"))
+
+# B3
+table(matrix3 < 0.5, matrix3 > 0.5, dnn = c("QDA Estimated Class Label", "True Class Label"))
+```
+
+When doing kNN classification the results show less false negatives and false positives than the QDA classification method. By a significant amount too. Although this is only with the 100 gene expression sample size. I believe kNN does better here since it is the more flexible classification method as QDA tends to do better with limited number of training observations. But in this case we have a good amount of training observations.
+
+
